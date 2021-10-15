@@ -4,15 +4,17 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/davecgh/go-spew/spew"
 	"golang.org/x/net/html"
 )
 
 func main() {
-	err := Parse()
+	links, err := Parse()
 	if err != nil {
 		fmt.Printf("error %s\n", err)
 		os.Exit(1)
 	}
+	spew.Dump(links)
 
 }
 
@@ -33,21 +35,41 @@ type Link struct {
 	Text string
 }
 
-func Parse() error {
+// Parse will accept an html document from std in and
+// return a slice of links passed from it.
+func Parse() ([]Link, error) {
 	if !hasStdIn() {
-		return fmt.Errorf("usage:\n $: cat example.html | go run cmd/parser/main")
+		return nil, fmt.Errorf("usage:\n $: cat example.html | go run cmd/parser/main")
 	}
 
 	doc, err := html.Parse(os.Stdin)
 	if err != nil {
-		return fmt.Errorf("cannot parse %w", err)
+		return nil, fmt.Errorf("cannot parse %w", err)
 	}
 	nodes := linkNodes(doc)
+	var links []Link
 	for _, node := range nodes {
-		fmt.Println(node)
+		links = append(links, buildLink(node))
 	}
 
-	return nil
+	return links, nil
+}
+
+func buildLink(n *html.Node) Link {
+	var ret Link
+	for _, attr := range n.Attr {
+		if attr.Key == "href" {
+			ret.Href = attr.Val
+			break
+		}
+	}
+
+	var msg string
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		msg += c.Data
+	}
+	ret.Text = msg
+	return ret
 }
 
 func linkNodes(n *html.Node) []*html.Node {
