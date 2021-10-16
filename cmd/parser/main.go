@@ -47,7 +47,8 @@ func Parse() ([]Link, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse %w", err)
 	}
-	nodes := linkNodes(doc)
+	nodes := getAnchors(doc)
+
 	var links []Link
 	for _, node := range nodes {
 		links = append(links, buildLink(node))
@@ -69,7 +70,6 @@ func buildLink(n *html.Node) Link {
 }
 
 func text(n *html.Node) string {
-	var ret string
 	if n.Type == html.TextNode {
 		return n.Data
 	}
@@ -78,21 +78,22 @@ func text(n *html.Node) string {
 		return ""
 	}
 
+	var ret string
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		ret = ret + text(c)
+		ret += text(c)
 	}
 
 	return strings.Join(strings.Fields(ret), " ")
 }
 
-func linkNodes(n *html.Node) []*html.Node {
+func getAnchors(n *html.Node) []*html.Node {
 	if n.Type == html.ElementNode && n.Data == "a" {
 		return []*html.Node{n}
 	}
 
 	var ret []*html.Node
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		ret = append(ret, linkNodes((c))...)
+		ret = append(ret, getAnchors((c))...)
 	}
 	return ret
 }
