@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/davecgh/go-spew/spew"
 	"golang.org/x/net/html"
@@ -63,13 +64,25 @@ func buildLink(n *html.Node) Link {
 			break
 		}
 	}
-
-	var msg string
-	for c := n.FirstChild; c != nil; c = c.NextSibling {
-		msg += c.Data
-	}
-	ret.Text = msg
+	ret.Text = text(n)
 	return ret
+}
+
+func text(n *html.Node) string {
+	var ret string
+	if n.Type == html.TextNode {
+		return n.Data
+	}
+
+	if n.Type != html.ElementNode {
+		return ""
+	}
+
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		ret = ret + text(c)
+	}
+
+	return strings.Join(strings.Fields(ret), " ")
 }
 
 func linkNodes(n *html.Node) []*html.Node {
